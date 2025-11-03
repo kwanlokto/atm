@@ -1,12 +1,13 @@
-import { useHistory } from 'react-router-dom';
-import Button from '@material-ui/core/Button';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import Button from '@mui/material/Button';
 
 export const LogoutButton = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('user.token');
-    history.push('/login');
+    navigate('/login', { replace: true });
   };
 
   return (

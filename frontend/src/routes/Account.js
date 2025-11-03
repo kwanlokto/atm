@@ -7,19 +7,19 @@ import {
   ListItemText,
   TextField,
   Typography,
-} from '@material-ui/core';
+} from '@mui/material';
 import { createTransaction, getAllTransactions } from '../data-handler/auth';
 import { useEffect, useState } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
-import CloseIcon from '@material-ui/icons/Close';
+import CloseIcon from '@mui/icons-material/Close';
 
 export const AccountDetail = () => {
   const { accountId } = useParams();
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const [transactions, setTransactions] = useState([]);
-  const [value, setValue] = useState('');
+  const [amount, setAmount] = useState('');
   const [operation, setOperation] = useState('');
 
   const fetchTransactions = async () => {
@@ -36,10 +36,10 @@ export const AccountDetail = () => {
   }, [accountId]);
 
   const handleCreateTransaction = async () => {
-    if (!value || !operation) return;
+    if (!amount || !operation) return;
     try {
-      await createTransaction(accountId, operation, parseFloat(value));
-      setValue('');
+      await createTransaction(accountId, operation, parseFloat(amount));
+      setAmount('');
       setOperation('');
       fetchTransactions();
     } catch (err) {
@@ -47,20 +47,22 @@ export const AccountDetail = () => {
     }
   };
 
-  const isAddDisabled = !operation || !value || Number(value) <= 0;
+  const isAddDisabled = !operation || !amount || Number(amount) <= 0;
 
   return (
     <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
       {/* Header */}
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        mb={3}
-        px={2}
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 3,
+          px: 2,
+        }}
       >
         <Typography variant="h6">Account #{accountId} Transactions</Typography>
-        <IconButton onClick={() => history.push('/')}>
+        <IconButton onClick={() => navigate('/')}>
           <CloseIcon />
         </IconButton>
       </Box>
@@ -68,10 +70,12 @@ export const AccountDetail = () => {
       {/* Transaction Form */}
       <Box sx={{ p: 2, mb: 4 }}>
         <Box
-          display="flex"
-          sx={{ gap: '16px' }}
-          alignItems="center"
-          flexWrap="wrap"
+          sx={{
+            display: 'flex',
+            gap: '16px',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
         >
           <TextField
             label="Operation"
@@ -83,8 +87,8 @@ export const AccountDetail = () => {
           <TextField
             label="Value"
             type="number"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             inputProps={{ min: 0, step: '0.01' }}
             size="small"
             sx={{ width: 120 }}
@@ -102,12 +106,12 @@ export const AccountDetail = () => {
       {/* Transaction List */}
       <Box>
         <List>
-          {transactions.map(({ id, value, operation, created_at }) => (
+          {transactions.map(({ id, value: txnValue, operation, created_at }) => (
             <ListItem key={id} divider>
               <ListItemText
                 primary={`${
                   operation.charAt(0).toUpperCase() + operation.slice(1)
-                } — $${Number(value).toFixed(2)}`}
+                } — $${Number(txnValue).toFixed(2)}`}
                 secondary={new Date(created_at).toLocaleString()}
               />
             </ListItem>

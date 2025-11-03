@@ -7,7 +7,7 @@ import {
   IconButton,
   TextField,
   Typography,
-} from '@material-ui/core';
+} from '@mui/material';
 import {
   createNewAccount,
   deleteAccount,
@@ -15,13 +15,13 @@ import {
 } from '../data-handler/auth';
 import { useEffect, useState } from 'react';
 
-import AddIcon from '@material-ui/icons/Add';
-import DeleteIcon from '@material-ui/icons/Delete';
-import { useHistory } from 'react-router-dom';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { useNavigate } from 'react-router-dom';
 import { LogoutButton } from '../component/logout_button';
 
 export const Dashboard = () => {
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const [accounts, setAccounts] = useState([]);
   const [newAccountName, setNewAccountName] = useState('');
@@ -52,9 +52,9 @@ export const Dashboard = () => {
     }
   };
 
-  const removeAccount = (accountId) => {
+  const removeAccount = async (accountId) => {
     try {
-      deleteAccount(accountId);
+      await deleteAccount(accountId);
       setAccounts((prev) => prev.filter((acc) => acc.id !== accountId));
     } catch (error) {
       console.error('Failed to delete account', error);
@@ -78,7 +78,7 @@ export const Dashboard = () => {
           {accounts.map(({ id, name, balance }) => (
             <Grid item xs={12} sm={6} md={4} key={id}>
               <Card
-                onClick={() => history.push(`/account/${id}`)}
+                onClick={() => navigate(`/account/${id}`)}
                 sx={{
                   cursor: 'pointer',
                   borderRadius: 2,
@@ -92,10 +92,12 @@ export const Dashboard = () => {
               >
                 <CardContent>
                   <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    mb={1}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 1,
+                    }}
                   >
                     <Typography variant="h6" fontWeight={500}>
                       {name}
@@ -122,7 +124,7 @@ export const Dashboard = () => {
       )}
 
       {/* New Account Input */}
-      <Box mt={5} display="flex" gap={2} alignItems="center" flexWrap="wrap">
+      <Box sx={{ mt: 5, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
           label="New account name"
           value={newAccountName}
@@ -143,7 +145,7 @@ export const Dashboard = () => {
       </Box>
 
       {/* Logout */}
-      <Box mt={6} textAlign="center">
+      <Box sx={{ mt: 6, textAlign: 'center' }}>
         <LogoutButton />
       </Box>
     </Box>

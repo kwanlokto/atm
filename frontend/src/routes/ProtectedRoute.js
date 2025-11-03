@@ -1,19 +1,13 @@
 // components/ProtectedRoute.tsx
 
-import { Redirect, Route } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 
-export const ProtectedRoute = ({ component: Component, ...rest }) => {
+export const ProtectedRoute = () => {
   const token = localStorage.getItem('user.token');
-
-  // You could also add token expiry checks here if needed
-  const isAuthenticated = !!token;
-
-  return (
-    <Route
-      {...rest}
-      render={(props) =>
-        isAuthenticated ? <Component {...props} /> : <Redirect to="/login" />
-      }
-    />
-  );
+  // add expiry check if needed using jwt-decode
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
 };

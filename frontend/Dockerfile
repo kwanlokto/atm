@@ -1,5 +1,5 @@
 # pull official base image
-FROM node:13.12.0-alpine
+FROM node:20-alpine
 
 # set working directory
 WORKDIR /app
@@ -9,7 +9,8 @@ ENV PATH /app/node_modules/.bin:$PATH
 
 # install app dependencies
 COPY package.json package-lock.json ./
-RUN npm install
+# use npm ci for reproducible installs
+RUN npm ci --silent
 
 # add app
 COPY . .
