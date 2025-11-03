@@ -62,6 +62,7 @@ def create_transaction(account_id):
                         value=value,
                     )
                     db.session.add(new_transaction)
+                    time.sleep(10)  # holds the row lock for 10 seconds
 
                 db.session.commit()
                 break
