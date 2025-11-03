@@ -62,28 +62,44 @@ export const Dashboard = () => {
   };
 
   return (
-    <Box sx={{ p: 4, maxWidth: 1000, mx: 'auto' }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ pt: 6, pb: 6, maxWidth: 1000, mx: 'auto' }}>
+      {/* Page Title */}
+      <Typography variant="h4" fontWeight={500} gutterBottom>
         Your Accounts
       </Typography>
 
+      {/* Loading State */}
       {loading ? (
-        <Typography>Loading...</Typography>
+        <Typography color="text.secondary" variant="body1">
+          Loading accounts...
+        </Typography>
       ) : (
-        <Grid container spacing={2}>
+        <Grid container spacing={3}>
           {accounts.map(({ id, name, balance }) => (
             <Grid item xs={12} sm={6} md={4} key={id}>
               <Card
                 onClick={() => history.push(`/account/${id}`)}
-                sx={{ cursor: 'pointer' }}
+                sx={{
+                  cursor: 'pointer',
+                  borderRadius: 2,
+                  boxShadow: 2,
+                  transition: 'transform 0.15s ease-in-out',
+                  '&:hover': {
+                    transform: 'scale(1.02)',
+                    boxShadow: 4,
+                  },
+                }}
               >
                 <CardContent>
                   <Box
                     display="flex"
                     justifyContent="space-between"
                     alignItems="center"
+                    mb={1}
                   >
-                    <Typography variant="h6">{name}</Typography>
+                    <Typography variant="h6" fontWeight={500}>
+                      {name}
+                    </Typography>
                     <IconButton
                       onClick={(e) => {
                         e.stopPropagation();
@@ -95,7 +111,7 @@ export const Dashboard = () => {
                       <DeleteIcon color="error" />
                     </IconButton>
                   </Box>
-                  <Typography color="textSecondary">
+                  <Typography color="text.secondary" fontWeight={400}>
                     Balance: ${balance}
                   </Typography>
                 </CardContent>
@@ -105,24 +121,31 @@ export const Dashboard = () => {
         </Grid>
       )}
 
-      <Box mt={4} display="flex" gap={2} alignItems="center">
+      {/* New Account Input */}
+      <Box mt={5} display="flex" gap={2} alignItems="center" flexWrap="wrap">
         <TextField
           label="New account name"
           value={newAccountName}
           onChange={(e) => setNewAccountName(e.target.value)}
           variant="outlined"
-          size="small"
+          size="medium"
+          sx={{ maxWidth: 400, flex: 1 }}
         />
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={createAccount}
           disabled={!newAccountName.trim()}
+          sx={{ height: 56 }}
         >
-          Create Account
+          Create
         </Button>
       </Box>
-      <LogoutButton />
+
+      {/* Logout */}
+      <Box mt={6} textAlign="center">
+        <LogoutButton />
+      </Box>
     </Box>
   );
 };
