@@ -9,7 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import { createTransaction, getAllTransactions } from '../data-handler/auth';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import CloseIcon from '@mui/icons-material/Close';
@@ -22,18 +22,18 @@ export const AccountDetail = () => {
   const [amount, setAmount] = useState('');
   const [operation, setOperation] = useState('');
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       const response = await getAllTransactions(accountId);
       setTransactions(response.data.data);
     } catch (error) {
       console.error('Failed to fetch transactions', error);
     }
-  };
+  }, [accountId]);
 
   useEffect(() => {
     fetchTransactions();
-  }, [accountId]);
+  }, [accountId, fetchTransactions]);
 
   const handleCreateTransaction = async () => {
     if (!amount || !operation) return;
@@ -106,16 +106,18 @@ export const AccountDetail = () => {
       {/* Transaction List */}
       <Box>
         <List>
-          {transactions.map(({ id, value: txnValue, operation, created_at }) => (
-            <ListItem key={id} divider>
-              <ListItemText
-                primary={`${
-                  operation.charAt(0).toUpperCase() + operation.slice(1)
-                } — $${Number(txnValue).toFixed(2)}`}
-                secondary={new Date(created_at).toLocaleString()}
-              />
-            </ListItem>
-          ))}
+          {transactions.map(
+            ({ id, value: txnValue, operation, created_at }) => (
+              <ListItem key={id} divider>
+                <ListItemText
+                  primary={`${
+                    operation.charAt(0).toUpperCase() + operation.slice(1)
+                  } — $${Number(txnValue).toFixed(2)}`}
+                  secondary={new Date(created_at).toLocaleString()}
+                />
+              </ListItem>
+            ),
+          )}
         </List>
       </Box>
     </Box>
