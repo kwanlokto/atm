@@ -26,9 +26,7 @@ def user_signup():
 
         # Create session using ORM
         token = create_access_token(identity=new_user.id)
-        new_user.access_token = (
-            token  # Store token in DB if needed for revocation/validation
-        )
+        new_user.access_token = token  # Store token in DB if needed for revocation/validation
         db.session.commit()
     except KeyError as err:
         msg = f"Missing required field: {err}"
@@ -36,10 +34,7 @@ def user_signup():
     except Exception as err:
         raise DBException(err)
 
-    return jsonify(
-        message="Added new user to db",
-        data={"user": new_user.as_dict(), "token": token}
-    )
+    return jsonify(message="Added new user to db", data={"user": new_user.as_dict(), "token": token})
 
 
 @custom_route("/user/login", methods=["POST"])
@@ -54,9 +49,7 @@ def user_login():
 
         # Create session using ORM
         token = create_access_token(identity=user.id)
-        user.access_token = (
-            token  # Store token in DB if needed for revocation/validation
-        )
+        user.access_token = token  # Store token in DB if needed for revocation/validation
         db.session.commit()
     except KeyError as err:
         msg = f"Missing required field: {err}"

@@ -24,7 +24,9 @@ from server.models.user import User
 webserver = Flask(__name__)
 CORS(webserver)
 # Configure Database URI
-DATABASE_URI = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+DATABASE_URI = (
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
 
 webserver.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
 
@@ -33,9 +35,7 @@ db.init_app(webserver)
 Migrate(webserver, db)
 
 webserver.config["JWT_SECRET_KEY"] = JWT_SECRET  # Change this to a more secure key
-webserver.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
-    hours=1
-)  # Set expiration time for access token
+webserver.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Set expiration time for access token
 
 jwt = JWTManager(webserver)
 
@@ -60,14 +60,10 @@ def custom_route(rule, **options):
             except InternalException as err:
                 status_code = err.status_code
                 # TOKEN / OTHER SPECIFIC ERRORS
-                resp_body = jsonify(
-                    message=f"{err.message} (error code: {status_code})"
-                )
+                resp_body = jsonify(message=f"{err.message} (error code: {status_code})")
             except DBException as err:
                 status_code = err.status_code
-                resp_body = jsonify(
-                    message=f"DB Error: {err.message} (error code: {status_code})"
-                )
+                resp_body = jsonify(message=f"DB Error: {err.message} (error code: {status_code})")
             except Exception as err:
                 resp_body = jsonify(message="Internal server error.")
                 status_code = 500

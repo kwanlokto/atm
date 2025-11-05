@@ -9,9 +9,7 @@ class User(db.Model):
     last_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255))
-    access_token = db.Column(
-        db.Text()
-    )  # Server looks up the token in the DB on every request.
+    access_token = db.Column(db.Text())  # Server looks up the token in the DB on every request.
 
     def __repr__(self):
         return f"<User {self.first_name} {self.last_name}>"

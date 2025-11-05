@@ -39,9 +39,7 @@ def upgrade():
     op.create_table(
         "transaction",
         sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column(
-            "account_id", sa.Integer, sa.ForeignKey("account.id"), nullable=False
-        ),
+        sa.Column("account_id", sa.Integer, sa.ForeignKey("account.id"), nullable=False),
         sa.Column("operation", sa.String(255), nullable=False),
         sa.Column("value", sa.Numeric, nullable=False),
     )
