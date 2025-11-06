@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile
     working_dir: /app
     volumes:
-      - ./frontend:/app:cached
+      - ./frontend:/app
       - /app/node_modules
     ports:
       - 3000:3000
@@ -27,11 +27,9 @@ services:
       - CHOKIDAR_USEPOLLING=true
     networks:
       - docker_practice
-    command: npm start
 
   backend:
     container_name: backend
-    platform: linux
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -47,8 +45,10 @@ services:
       - .env
     networks:
       - docker_practice
+
 volumes:
   postgres-data:
+
 networks:
   docker_practice:
     driver: bridge
