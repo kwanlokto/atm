@@ -35,10 +35,10 @@ Once the app is running, the frontend will be available at:
 Downgrade database by a specific number of revisions:
 
 ```bash
-alembic downgrade -x <number_of_revisions>
+docker exec -i backend alembic downgrade -x <number_of_revisions>
 ```
 
 Upgrade database to the latest (head) revision:
 ```bash
-alembic upgrade head
+docker exec -i backend alembic upgrade head
 ```
