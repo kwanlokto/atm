@@ -1,19 +1,24 @@
-# pull official base image
-FROM node:20-alpine
+# Use official Node.js 20 image
+FROM node:22-alpine
 
-# set working directory
+# Set working directory
 WORKDIR /app
 
-# add `/app/node_modules/.bin` to $PATH
-ENV PATH /app/node_modules/.bin:$PATH
+# Add node_modules binaries to PATH
+ENV PATH="/app/node_modules/.bin:$PATH"
 
-# install app dependencies
+# Copy package files and install dependencies
 COPY package.json package-lock.json ./
-# use npm ci for reproducible installs
-RUN npm ci --silent
+RUN npm ci
 
-# add app
+# Copy the rest of the app
 COPY . .
 
-# start app
+# Expose port for React dev server
+EXPOSE 3000
+
+# Set environment variable so CRA binds to all interfaces
+ENV HOST=0.0.0.0
+
+# Start the app
 CMD ["npm", "start"]
