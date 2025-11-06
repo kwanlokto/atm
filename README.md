@@ -30,6 +30,9 @@ Once the app is running, the frontend will be available at:
 
 ➡️ [http://localhost:3000](http://localhost:3000)
 
+EMAIL: dummy@dummy.com
+PASS: password
+
 
 ## 🛠️ Database Migrations
 Downgrade database by a specific number of revisions:
