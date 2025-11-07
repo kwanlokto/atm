@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+
 import Avatar from '@mui/material/Avatar';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
+import Grid from '@mui/material/Grid';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import { makeStyles } from '@mui/styles';
 import { userSignup } from '../data-handler/auth';
 
