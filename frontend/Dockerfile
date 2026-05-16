@@ -1,5 +1,5 @@
-# Node 20 LTS — matches the range react-scripts 5 is tested against.
-FROM node:20
+# Node 18 LTS — best-matched to react-scripts 5.0.1's dependency tree.
+FROM node:18-bookworm-slim
 
 # Set working directory
 WORKDIR /app
