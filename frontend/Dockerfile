@@ -8,10 +8,10 @@ WORKDIR /app
 ENV PATH="/app/node_modules/.bin:$PATH"
 
 # Copy package files and install dependencies.
-# Use `npm install` (not `npm ci`) so the `overrides` field in package.json
-# is honored — needed to force ajv@8 and fix the schema-utils/ajv-keywords
-# "Unknown keyword formatMinimum" crash from react-scripts 5.
-COPY package.json package-lock.json ./
+# `package-lock.json` is optional (use a glob) — when absent, npm resolves
+# fresh from package.json so `overrides` + the direct ajv/ajv-keywords deps
+# are applied without being re-pinned by a stale lockfile.
+COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
 # Copy the rest of the app
