@@ -7,9 +7,12 @@ WORKDIR /app
 # Add node_modules binaries to PATH
 ENV PATH="/app/node_modules/.bin:$PATH"
 
-# Copy package files and install dependencies
+# Copy package files and install dependencies.
+# Use `npm install` (not `npm ci`) so the `overrides` field in package.json
+# is honored — needed to force ajv@8 and fix the schema-utils/ajv-keywords
+# "Unknown keyword formatMinimum" crash from react-scripts 5.
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy the rest of the app
 COPY . .
