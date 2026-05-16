@@ -1,35 +1,28 @@
+import {
+  Alert,
+  Box,
+  Button,
+  Link as MuiLink,
+  TextField,
+} from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import { makeStyles } from '@mui/styles';
-import { useState } from 'react';
+import { AuthLayout } from '../component/AuthLayout';
 import { userLogin } from '../data-handler/auth';
 
-const useStyles = makeStyles(() => ({
-  paper: {
-    marginTop: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-  },
-  form: { width: '100%', marginTop: 1 },
-}));
-
 export const Login = () => {
-  const classes = useStyles();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    setBusy(true);
     try {
       const res = await userLogin(email, password);
       const token = res?.data?.data?.token;
@@ -37,61 +30,65 @@ export const Login = () => {
         localStorage.setItem('user.token', token);
         navigate('/', { replace: true });
       } else {
-        console.error('No token returned from login', res);
+        setError('Sign-in succeeded but no token was returned.');
       }
     } catch (err) {
-      console.error('Login error', err);
+      setError(err.message || 'Sign-in failed');
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box className={classes.paper}>
-        <Avatar sx={{ m: 1 }} />
-        <Typography component="h1" variant="h5">
-          Sign in
-        </Typography>
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          className={classes.form}
-          noValidate
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Sign in to access your accounts."
+    >
+      <Box component="form" onSubmit={handleSubmit} noValidate>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          label="Email address"
+          autoComplete="email"
+          autoFocus
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          size="large"
+          disabled={busy}
+          sx={{ mt: 3, mb: 2 }}
         >
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            label="Email Address"
-            autoComplete="email"
-            autoFocus
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            margin="normal"
-            required
-            fullWidth
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2 }}
-          >
-            Sign In
-          </Button>
-          <Grid container justifyContent="flex-end">
-            <Grid item>
-              <Link to="/signup">Don't have an account? Sign Up</Link>
-            </Grid>
-          </Grid>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          <MuiLink component={Link} to="/signup" underline="hover">
+            Create an account
+          </MuiLink>
+          <MuiLink href="#" underline="hover" color="text.secondary">
+            Forgot password?
+          </MuiLink>
         </Box>
       </Box>
-    </Container>
+    </AuthLayout>
   );
 };

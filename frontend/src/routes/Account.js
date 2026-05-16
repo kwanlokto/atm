@@ -1,20 +1,32 @@
 import {
   Alert,
+  Avatar,
   Box,
+  Breadcrumbs,
   Button,
   Card,
   CardContent,
   Chip,
+  Container,
   Divider,
-  IconButton,
+  Grid,
+  InputAdornment,
+  Link as MuiLink,
   List,
   ListItem,
+  ListItemAvatar,
   ListItemText,
+  Paper,
+  Skeleton,
+  Stack,
   Tab,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   deposit,
   getAccount,
@@ -22,19 +34,107 @@ import {
   transfer,
   withdraw,
 } from '../data-handler/auth';
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 
-import CloseIcon from '@mui/icons-material/Close';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import { AppShell } from '../component/AppShell';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import { BRAND } from '../theme';
+import { ContentCopy } from '@mui/icons-material';
+import IconButton from '@mui/material/IconButton';
+import SavingsIcon from '@mui/icons-material/Savings';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
-const formatMoney = (n) =>
+const fmtUSD = (n) =>
   Number(n).toLocaleString(undefined, { style: 'currency', currency: 'USD' });
 
-const KIND_LABEL = {
-  deposit: 'Deposit',
-  withdrawal: 'Withdrawal',
-  transfer_in: 'Transfer in',
-  transfer_out: 'Transfer out',
+const TYPE_META = {
+  checking: { label: 'Checking', icon: AccountBalanceWalletIcon, color: BRAND.navy[700] },
+  savings: { label: 'Savings', icon: SavingsIcon, color: BRAND.emerald[600] },
+};
+
+const TXN_META = {
+  deposit: {
+    label: 'Deposit',
+    icon: ArrowDownwardIcon,
+    color: BRAND.emerald[600],
+    bg: '#E1F5EE',
+    sign: '+',
+  },
+  withdrawal: {
+    label: 'Withdrawal',
+    icon: ArrowUpwardIcon,
+    color: '#C0392B',
+    bg: '#FCE7E2',
+    sign: '−',
+  },
+  transfer_in: {
+    label: 'Transfer in',
+    icon: SwapHorizIcon,
+    color: BRAND.emerald[600],
+    bg: '#E1F5EE',
+    sign: '+',
+  },
+  transfer_out: {
+    label: 'Transfer out',
+    icon: SwapHorizIcon,
+    color: BRAND.navy[700],
+    bg: '#E7ECF6',
+    sign: '−',
+  },
+};
+
+const formatDate = (iso) =>
+  new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+const TransactionRow = ({ t }) => {
+  const meta = TXN_META[t.kind] || TXN_META.deposit;
+  const Icon = meta.icon;
+  const signed = Number(t.amount);
+  return (
+    <ListItem
+      divider
+      secondaryAction={
+        <Box sx={{ textAlign: 'right' }}>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 700, color: meta.color }}
+          >
+            {meta.sign}
+            {fmtUSD(Math.abs(signed))}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            balance {fmtUSD(t.balance_after)}
+          </Typography>
+        </Box>
+      }
+    >
+      <ListItemAvatar>
+        <Avatar sx={{ bgcolor: meta.bg, color: meta.color }}>
+          <Icon fontSize="small" />
+        </Avatar>
+      </ListItemAvatar>
+      <ListItemText
+        primary={
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            {meta.label}
+            {t.description ? ` — ${t.description}` : ''}
+          </Typography>
+        }
+        secondary={
+          <>
+            {formatDate(t.created_at)}
+            {t.transfer_id ? ` · transfer ${t.transfer_id.slice(0, 8)}` : ''}
+          </>
+        }
+      />
+    </ListItem>
+  );
 };
 
 export const AccountDetail = () => {
@@ -47,7 +147,6 @@ export const AccountDetail = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [toAccountNumber, setToAccountNumber] = useState('');
@@ -67,9 +166,8 @@ export const AccountDetail = () => {
 
   useEffect(() => {
     refresh();
-    // Poll so a concurrent operation by another client shows up quickly.
-    const interval = setInterval(refresh, 4000);
-    return () => clearInterval(interval);
+    const id = setInterval(refresh, 4000);
+    return () => clearInterval(id);
   }, [accountId, refresh]);
 
   const reset = () => {
@@ -90,10 +188,10 @@ export const AccountDetail = () => {
     try {
       if (tab === 0) {
         await deposit(accountId, value, description || undefined);
-        setSuccess(`Deposited ${formatMoney(value)}`);
+        setSuccess(`Deposited ${fmtUSD(value)}`);
       } else if (tab === 1) {
         await withdraw(accountId, value, description || undefined);
-        setSuccess(`Withdrew ${formatMoney(value)}`);
+        setSuccess(`Withdrew ${fmtUSD(value)}`);
       } else {
         if (!toAccountNumber.trim()) {
           setError('Recipient account number required');
@@ -107,7 +205,7 @@ export const AccountDetail = () => {
           description || undefined,
         );
         setSuccess(
-          `Transferred ${formatMoney(value)} to #${toAccountNumber.trim()}`,
+          `Transferred ${fmtUSD(value)} to #${toAccountNumber.trim()}`,
         );
       }
       reset();
@@ -121,156 +219,225 @@ export const AccountDetail = () => {
 
   if (!account) {
     return (
-      <Box sx={{ p: 3, maxWidth: 700, mx: 'auto' }}>
-        <Typography>Loading…</Typography>
-      </Box>
+      <AppShell>
+        <Container maxWidth="lg" sx={{ py: 5 }}>
+          <Skeleton variant="rounded" height={200} sx={{ mb: 3 }} />
+          <Skeleton variant="rounded" height={400} />
+        </Container>
+      </AppShell>
     );
   }
 
+  const meta = TYPE_META[account.account_type] || TYPE_META.checking;
+  const TypeIcon = meta.icon;
+
+  const copyNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(account.account_number);
+      setSuccess('Account number copied');
+      setTimeout(() => setSuccess(''), 1500);
+    } catch (_) {}
+  };
+
   return (
-    <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 2,
-        }}
-      >
-        <Box>
-          <Typography variant="h5">{account.name}</Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
-            <Chip
-              size="small"
-              label={account.account_type}
-              sx={{ textTransform: 'capitalize' }}
-            />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ fontFamily: 'monospace' }}
-            >
-              #{account.account_number}
-            </Typography>
-          </Box>
-        </Box>
-        <IconButton onClick={() => navigate('/')}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
+    <AppShell>
+      <Container maxWidth="lg" sx={{ py: { xs: 3, md: 5 } }}>
+        <Breadcrumbs sx={{ mb: 2 }}>
+          <MuiLink component={Link} to="/" underline="hover" color="text.secondary">
+            Accounts
+          </MuiLink>
+          <Typography color="text.primary">{account.name}</Typography>
+        </Breadcrumbs>
 
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography color="text.secondary" variant="body2">
-            Available balance
-          </Typography>
-          <Typography variant="h3" sx={{ mt: 0.5 }}>
-            {formatMoney(account.balance)}
-          </Typography>
-        </CardContent>
-      </Card>
-
-      <Card sx={{ mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => { setTab(v); setError(''); setSuccess(''); }}>
-          <Tab label="Deposit" />
-          <Tab label="Withdraw" />
-          <Tab label="Transfer" />
-        </Tabs>
-        <Divider />
-        <CardContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {tab === 2 && (
-              <TextField
-                label="Recipient account number"
-                value={toAccountNumber}
-                onChange={(e) => setToAccountNumber(e.target.value)}
-                inputProps={{ inputMode: 'numeric', maxLength: 16 }}
-                fullWidth
-              />
-            )}
-            <TextField
-              label="Amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              inputProps={{ min: 0, step: '0.01' }}
-              fullWidth
-            />
-            <TextField
-              label="Description (optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              onClick={submit}
-              disabled={busy || !amount}
-            >
-              {busy
-                ? 'Processing…'
-                : tab === 0
-                ? 'Deposit'
-                : tab === 1
-                ? 'Withdraw'
-                : 'Send Transfer'}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Typography variant="h6" sx={{ mb: 1 }}>
-        Recent transactions
-      </Typography>
-      <Card>
-        <List>
-          {transactions.length === 0 && (
-            <ListItem>
-              <ListItemText primary="No transactions yet" />
-            </ListItem>
-          )}
-          {transactions.map((t) => {
-            const signed = Number(t.amount);
-            const sign = signed >= 0 ? '+' : '−';
-            return (
-              <ListItem key={t.id} divider>
-                <ListItemText
-                  primary={
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                      }}
+        {/* Header card */}
+        <Paper
+          sx={{
+            p: { xs: 3, md: 4 },
+            mb: 3,
+            color: '#fff',
+            backgroundImage: `linear-gradient(135deg, ${meta.color}, ${BRAND.navy[900]})`,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              right: -60,
+              bottom: -60,
+              width: 220,
+              height: 220,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.07)',
+            }}
+          />
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            alignItems={{ xs: 'flex-start', md: 'center' }}
+            spacing={2}
+            sx={{ position: 'relative' }}
+          >
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Avatar
+                sx={{
+                  bgcolor: 'rgba(255,255,255,0.18)',
+                  width: 56,
+                  height: 56,
+                }}
+              >
+                <TypeIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" sx={{ color: '#fff' }}>
+                  {account.name}
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center" mt={0.5}>
+                  <Chip
+                    size="small"
+                    label={meta.label}
+                    sx={{
+                      bgcolor: 'rgba(255,255,255,0.18)',
+                      color: '#fff',
+                    }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: 'rgba(255,255,255,0.85)',
+                      fontFamily: 'monospace',
+                      letterSpacing: 1,
+                    }}
+                  >
+                    #{account.account_number}
+                  </Typography>
+                  <Tooltip title="Copy number">
+                    <IconButton
+                      size="small"
+                      onClick={copyNumber}
+                      sx={{ color: 'rgba(255,255,255,0.8)' }}
                     >
-                      <span>
-                        {KIND_LABEL[t.kind] || t.kind}
-                        {t.description ? ` — ${t.description}` : ''}
-                      </span>
-                      <span
-                        style={{
-                          color: signed >= 0 ? '#2e7d32' : '#c62828',
-                        }}
-                      >
-                        {sign}
-                        {formatMoney(Math.abs(signed))}
-                      </span>
-                    </Box>
-                  }
-                  secondary={
-                    <>
-                      {new Date(t.created_at).toLocaleString()} · balance after{' '}
-                      {formatMoney(t.balance_after)}
-                      {t.transfer_id ? ` · transfer ${t.transfer_id.slice(0, 8)}` : ''}
-                    </>
-                  }
-                />
-              </ListItem>
-            );
-          })}
-        </List>
-      </Card>
-    </Box>
+                      <ContentCopy fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </Box>
+            </Stack>
+            <Box sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'rgba(255,255,255,0.7)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.16em',
+                }}
+              >
+                Available balance
+              </Typography>
+              <Typography variant="h3" sx={{ fontWeight: 700, color: '#fff' }}>
+                {fmtUSD(account.balance)}
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={5}>
+            <Card>
+              <Tabs
+                value={tab}
+                onChange={(_, v) => {
+                  setTab(v);
+                  setError('');
+                  setSuccess('');
+                }}
+                variant="fullWidth"
+              >
+                <Tab icon={<ArrowDownwardIcon />} iconPosition="start" label="Deposit" />
+                <Tab icon={<ArrowUpwardIcon />} iconPosition="start" label="Withdraw" />
+                <Tab icon={<SwapHorizIcon />} iconPosition="start" label="Transfer" />
+              </Tabs>
+              <Divider />
+              <CardContent>
+                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+                {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+                <Stack spacing={2}>
+                  {tab === 2 && (
+                    <TextField
+                      label="Recipient account number"
+                      value={toAccountNumber}
+                      onChange={(e) => setToAccountNumber(e.target.value)}
+                      inputProps={{ inputMode: 'numeric', maxLength: 16 }}
+                      fullWidth
+                    />
+                  )}
+                  <TextField
+                    label="Amount"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    inputProps={{ min: 0, step: '0.01' }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">$</InputAdornment>
+                      ),
+                    }}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Description (optional)"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    fullWidth
+                  />
+                  <Button
+                    variant="contained"
+                    size="large"
+                    onClick={submit}
+                    disabled={busy || !amount}
+                  >
+                    {busy
+                      ? 'Processing…'
+                      : tab === 0
+                      ? `Deposit ${amount ? fmtUSD(amount) : ''}`
+                      : tab === 1
+                      ? `Withdraw ${amount ? fmtUSD(amount) : ''}`
+                      : `Send ${amount ? fmtUSD(amount) : 'transfer'}`}
+                  </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    Every request is sent with a unique Idempotency-Key so retries
+                    never double-post.
+                  </Typography>
+                </Stack>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={7}>
+            <Card>
+              <CardContent sx={{ pb: 0 }}>
+                <Typography variant="h6">Recent activity</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Updates every few seconds across all connected devices.
+                </Typography>
+              </CardContent>
+              <List sx={{ pt: 1 }}>
+                {transactions.length === 0 && (
+                  <ListItem>
+                    <ListItemText
+                      primary="No transactions yet"
+                      secondary="Make a deposit to see your first activity."
+                    />
+                  </ListItem>
+                )}
+                {transactions.map((t) => (
+                  <TransactionRow key={t.id} t={t} />
+                ))}
+              </List>
+            </Card>
+          </Grid>
+        </Grid>
+      </Container>
+    </AppShell>
   );
 };

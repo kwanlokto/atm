@@ -1,14 +1,13 @@
-import Link from '@material-ui/core/Link';
-import Typography from '@material-ui/core/Typography';
+import { Link, Typography } from '@mui/material';
 
-export const Copyright = () => {
-  return (
-    <Typography variant="body2" color="textSecondary" align="center">
-      Copyright ©
-      <Link color="inherit" href="https://material-ui.com/">
-        Your Website
-      </Link>
-      {new Date().getFullYear()}
-    </Typography>
-  );
-};
+import React from 'react';
+
+export const Copyright = () => (
+  <Typography variant="body2" color="text.secondary" align="center">
+    {'Copyright © '}
+    <Link color="inherit" href="#">
+      Meridian Private Banking
+    </Link>{' '}
+    {new Date().getFullYear()}
+  </Typography>
+);
