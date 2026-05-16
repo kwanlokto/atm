@@ -1,5 +1,5 @@
 # Node 18 LTS — best-matched to react-scripts 5.0.1's dependency tree.
-FROM node:18-bookworm-slim
+FROM node:18
 
 # Set working directory
 WORKDIR /app
