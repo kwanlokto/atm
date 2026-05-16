@@ -4,12 +4,13 @@ from server.models import db
 
 
 class User(db.Model):
+    __tablename__ = "user"
+
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(255), nullable=False)
     last_name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255))
-    access_token = db.Column(db.Text())  # Server looks up the token in the DB on every request.
 
     def __repr__(self):
         return f"<User {self.first_name} {self.last_name}>"
@@ -21,4 +22,9 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     def as_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+        }

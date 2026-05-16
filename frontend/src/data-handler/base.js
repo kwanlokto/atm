@@ -94,9 +94,9 @@ export const axios_patch = async (path, patch_body = {}, query_parameters = {}) 
 /**
  * Makes a POST request to the backend
  */
-export const axios_post = async (path, post_body = {}, query_parameters = {}) => {
+export const axios_post = async (path, post_body = {}, query_parameters = {}, headers = {}) => {
   return axios
-    .post(address + path + parse_query_parameters(query_parameters), post_body)
+    .post(address + path + parse_query_parameters(query_parameters), post_body, { headers })
     .catch(handle_axios_exception)
 }
 

@@ -1,16 +1,18 @@
-FROM python:3.7
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy pre-made requirements.txt
-COPY requirements.txt ./
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gcc libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
+COPY requirements.txt ./
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy the rest of the app code
 COPY . .
+
+RUN chmod +x entrypoint.sh
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+ENTRYPOINT ["./entrypoint.sh"]
