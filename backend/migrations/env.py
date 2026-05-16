@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from alembic import context
@@ -18,9 +19,11 @@ config.set_main_option(
     "sqlalchemy.url",
     f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}",
 )
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-fileConfig(config.config_file_name)
+# flask-migrate passes config_file_name="migrations/alembic.ini" by default,
+# but our alembic.ini lives one level up at /app/alembic.ini. Skip logging
+# setup if the path it gave us doesn't exist.
+if config.config_file_name and os.path.isfile(config.config_file_name):
+    fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

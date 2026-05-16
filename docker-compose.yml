@@ -93,7 +93,7 @@ services:
       - RUNNING_IN_DOCKER=DO-NOT-CHANGE
     env_file:
       - .env
-    entrypoint: ["sh", "-c", "flask db upgrade || alembic upgrade head"]
+    entrypoint: ["alembic", "upgrade", "head"]
     networks:
       - docker_practice
     restart: "no"
