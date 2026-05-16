@@ -1,5 +1,5 @@
-# Use official Node.js 20 image
-FROM node:16
+# Node 20 LTS — matches the range react-scripts 5 is tested against.
+FROM node:20
 
 # Set working directory
 WORKDIR /app
