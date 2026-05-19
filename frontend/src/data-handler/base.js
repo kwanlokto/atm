@@ -56,8 +56,15 @@ const parse_query_parameters = (query_parameters = {}) => {
  */
 export const handle_axios_exception = (error) => {
   if (error.response) {
-    if (error.response.status === 440) {
-      throw new Error("Login credentials expired. Please login again to refresh your session")
+    if (error.response.status === 401 || error.response.status === 440) {
+      // Token is gone, expired, or revoked — wipe local session and bounce
+      // to /login. Avoid loops on the auth pages themselves.
+      const path = window.location.pathname
+      if (path !== '/login' && path !== '/signup') {
+        localStorage.removeItem('user.token')
+        window.location.replace('/login')
+      }
+      throw new Error('Your session has ended. Please sign in again.')
     }
 
     throw new Error(error.response.data.message)

@@ -4,7 +4,13 @@ from functools import wraps
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, get_jwt, get_jwt_identity, jwt_required
+from flask_jwt_extended import (
+    JWTManager,
+    get_jwt,
+    get_jwt_identity,
+    verify_jwt_in_request,
+)
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_migrate import Migrate
 
 from definitions import (
@@ -100,9 +106,18 @@ def custom_route(rule, **options):
 
 
 def require_token(f):
-    @jwt_required()
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # We call verify_jwt_in_request ourselves so any auth failure becomes a
+        # clean 401 here rather than bubbling up to custom_route's
+        # `except Exception` (which would mask it as a 500).
+        try:
+            verify_jwt_in_request()
+        except NoAuthorizationError:
+            return (jsonify(message="Authentication required"), 401)
+        except Exception as err:
+            return (jsonify(message=f"Invalid token: {err}"), 401)
+
         user_id = get_jwt_identity()
         claims = get_jwt()
         jti = claims.get("jti")
