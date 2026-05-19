@@ -68,8 +68,8 @@ This brings up:
 | ----------- | ----------- | -------------------------------------------------- |
 | `frontend`  | 3000        | React UI                                           |
 | `nginx`     | 5000        | API edge — load-balances `backend` replicas        |
-| `backend`   | (internal)  | Flask API, **3 replicas**                          |
-| `worker`    | (internal)  | RabbitMQ consumer, **2 replicas**                  |
+| `backend`   | (internal)  | Flask API (scale with `--scale backend=N`)         |
+| `worker`    | (internal)  | RabbitMQ consumer (scale with `--scale worker=N`)  |
 | `pgbouncer` | 6432        | Postgres connection pool (transaction mode)        |
 | `postgres`  | 5434        | Primary DB (used directly by `migrate` job)        |
 | `redis`     | 6379        | Sessions + per-account distributed locks           |
