@@ -69,10 +69,10 @@ export const handle_axios_exception = (error) => {
 
     throw new Error(error.response.data.message)
   } else if (error.request) {
-    console.log("The request was made but no response was made")
+    console.log("The request was made but no response was received")
     console.log(error.request)
     throw new Error(
-      "Router API: Failed to connect to Router API. Make sure mars-gateway is running on docker. If this issue persists, please restart the app."
+      "Could not reach the banking API. Make sure the backend is running and try again."
     )
   } else {
     console.log("Request Setup Error", error.message)

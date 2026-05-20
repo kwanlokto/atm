@@ -1,5 +1,11 @@
+import secrets
+
 from server.models import db
 from sqlalchemy import CheckConstraint, UniqueConstraint
+
+
+def generate_account_number():
+    return "".join(secrets.choice("0123456789") for _ in range(12))
 
 
 class Account(db.Model):

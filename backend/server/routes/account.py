@@ -1,18 +1,12 @@
-import secrets
-
 from flask import jsonify, request
 from sqlalchemy.exc import IntegrityError
 
 from server.exceptions.db import DBException
 from server.models import db
-from server.models.account import Account
+from server.models.account import Account, generate_account_number
 from server.routes.server import custom_route, require_token
 
 VALID_TYPES = ("checking", "savings")
-
-
-def _generate_account_number():
-    return "".join(secrets.choice("0123456789") for _ in range(12))
 
 
 @custom_route("/account", methods=["GET"])
@@ -53,7 +47,7 @@ def create_account():
         try:
             new_account = Account(
                 name=name,
-                account_number=_generate_account_number(),
+                account_number=generate_account_number(),
                 account_type=account_type,
                 user_id=request.user.id,
             )

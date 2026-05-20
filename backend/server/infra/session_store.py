@@ -51,11 +51,3 @@ def revoke_session(user_id, jti):
         redis_client().delete(_key(user_id, jti))
     except redis.RedisError:
         pass
-
-
-def revoke_all_sessions(user_id):
-    try:
-        for k in redis_client().scan_iter(match=f"session:{user_id}:*"):
-            redis_client().delete(k)
-    except redis.RedisError:
-        pass

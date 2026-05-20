@@ -1,5 +1,3 @@
-import secrets
-
 from flask import jsonify, request
 from flask_jwt_extended import create_access_token, decode_token, get_jwt, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
@@ -7,13 +5,9 @@ from sqlalchemy.exc import IntegrityError
 from server.exceptions.db import DBException
 from server.infra.session_store import revoke_session, store_session
 from server.models import db
-from server.models.account import Account
+from server.models.account import Account, generate_account_number
 from server.models.user import User
 from server.routes.server import custom_route, require_token
-
-
-def _generate_account_number():
-    return "".join(secrets.choice("0123456789") for _ in range(12))
 
 
 def _create_default_account(user_id):
@@ -23,7 +17,7 @@ def _create_default_account(user_id):
             with db.session.begin_nested():
                 acct = Account(
                     name="Primary Checking",
-                    account_number=_generate_account_number(),
+                    account_number=generate_account_number(),
                     account_type="checking",
                     user_id=user_id,
                 )

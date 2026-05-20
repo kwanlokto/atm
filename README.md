@@ -71,7 +71,7 @@ This brings up:
 | `backend`   | (internal)  | Flask API (scale with `--scale backend=N`)         |
 | `worker`    | (internal)  | RabbitMQ consumer (scale with `--scale worker=N`)  |
 | `pgbouncer` | 6432        | Postgres connection pool (transaction mode)        |
-| `postgres`  | 5434        | Primary DB (used directly by `migrate` job)        |
+| `postgres`  | 5434        | Primary DB (backend connects via `pgbouncer`)      |
 | `redis`     | 6379        | Sessions + per-account distributed locks           |
 | `rabbitmq`  | 5672 / 15672| AMQP + management UI (`guest` / `guest`)           |
 

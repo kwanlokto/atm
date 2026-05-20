@@ -86,10 +86,6 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - SERVICE_ROLE=api
-      - RUN_MIGRATIONS=true
-      - GUNICORN_WORKERS=1
-      - GUNICORN_THREADS=1
       - RUNNING_IN_DOCKER=DO-NOT-CHANGE
     env_file:
       - .env

@@ -9,7 +9,7 @@ if "RUNNING_IN_DOCKER" not in os.environ:
     if not os.path.isfile(env_file_path):
         raise Exception("App setup error: Missing .env file.")
 
-    load_dotenv()
+    load_dotenv(env_file_path)
 
 try:
     JWT_SECRET = os.environ["JWT_SECRET"]
