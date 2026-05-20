@@ -1,5 +1,6 @@
-*/node_modules
-*/build
-*/.dockerignore
-*/Dockerfile
-*/Dockerfile.prod
+node_modules
+dist
+build
+.dockerignore
+Dockerfile
+package-lock.json

@@ -1,21 +1,18 @@
-# Node 18 LTS — best-matched to react-scripts 5.0.1.
-FROM node:18-bookworm-slim
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Pin to npm 9. npm 10 (default in recent node:18 images) hoists this
-# dep tree differently than npm 9, which is what landed the broken
-# top-level ajv-keywords that crashed the dev server.
-RUN npm install -g npm@9
-
 ENV PATH="/app/node_modules/.bin:$PATH"
 
-COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+# Only copy package.json — never the host's package-lock.json. npm locks
+# optional-dep platform binaries (rollup, esbuild) to whoever ran `npm install`
+# last, so a Windows or macOS lockfile is missing the linux-musl variants
+# this container needs. See https://github.com/npm/cli/issues/4828.
+COPY package.json ./
+RUN npm install
 
 COPY . .
 
 EXPOSE 3000
 
-ENV HOST=0.0.0.0
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev", "--", "--host"]
