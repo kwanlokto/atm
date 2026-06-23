@@ -57,23 +57,6 @@ services:
     networks:
       - docker_practice
 
-  rabbitmq:
-    container_name: rabbitmq
-    image: rabbitmq:3-management
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-    ports:
-      - "5672:5672"     # AMQP
-      - "15672:15672"   # Management UI -> http://localhost:15672 (guest/guest)
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - docker_practice
-
   # ----- Schema bootstrap (runs once, then exits) -----
   migrate:
     image: docker_practice_backend
@@ -105,11 +88,12 @@ services:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
     environment:
       - SERVICE_ROLE=api
       - RUN_MIGRATIONS=false
+      # A dedicated `worker` service handles events locally, so the API doesn't
+      # also run the embedded consumer (it does on single-service free hosting).
+      - RUN_EMBEDDED_WORKER=false
       - GUNICORN_WORKERS=4
       - GUNICORN_THREADS=4
       - RUNNING_IN_DOCKER=DO-NOT-CHANGE
@@ -129,7 +113,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     depends_on:
-      rabbitmq:
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully

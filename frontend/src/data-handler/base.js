@@ -1,6 +1,8 @@
 import Axios from "axios"
 
-const address = 'http://localhost:5000'
+// Set VITE_API_BASE_URL in the deploy env (e.g. the Render API URL on Vercel);
+// falls back to the local backend for `vite dev` / docker compose.
+const address = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 export const axios = Axios.create();
 
 // Adds user.token to the request header

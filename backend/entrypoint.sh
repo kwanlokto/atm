@@ -11,9 +11,13 @@ if [ "$ROLE" = "api" ]; then
     else
         echo "[entrypoint] skipping migrations (RUN_MIGRATIONS!=true)"
     fi
+    # -c gunicorn.conf.py wires the optional embedded event consumer (post_fork).
+    # Default to 1 worker — small free-tier instances have little RAM, and one
+    # worker means one embedded consumer.
     exec gunicorn app:webserver \
-        -b 0.0.0.0:5000 \
-        -w "${GUNICORN_WORKERS:-4}" \
+        -c gunicorn.conf.py \
+        -b "0.0.0.0:${PORT:-5000}" \
+        -w "${GUNICORN_WORKERS:-1}" \
         --threads "${GUNICORN_THREADS:-4}" \
         --worker-class gthread \
         --access-logfile - \

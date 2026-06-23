@@ -4,21 +4,12 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from definitions import (
-    POSTGRES_DB,
-    POSTGRES_PASSWORD,
-    POSTGRES_PORT,
-    POSTGRES_SERVER,
-    POSTGRES_USER,
-)
+from definitions import get_database_uri
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option(
-    "sqlalchemy.url",
-    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}",
-)
+config.set_main_option("sqlalchemy.url", get_database_uri())
 # flask-migrate passes config_file_name="migrations/alembic.ini" by default,
 # but our alembic.ini lives one level up at /app/alembic.ini. Skip logging
 # setup if the path it gave us doesn't exist.

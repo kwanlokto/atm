@@ -12,6 +12,7 @@ import redis
 from definitions import (
     REDIS_HOST,
     REDIS_PORT,
+    REDIS_URL,
     SESSION_TTL_SECONDS,
 )
 
@@ -21,13 +22,23 @@ _client = None
 def redis_client():
     global _client
     if _client is None:
-        _client = redis.Redis(
-            host=REDIS_HOST,
-            port=REDIS_PORT,
-            decode_responses=True,
-            socket_timeout=2,
-            socket_connect_timeout=2,
-        )
+        if REDIS_URL:
+            # Managed Redis (e.g. Upstash) hands you a full rediss:// URL with
+            # auth baked in. from_url handles TLS + credentials for us.
+            _client = redis.Redis.from_url(
+                REDIS_URL,
+                decode_responses=True,
+                socket_timeout=2,
+                socket_connect_timeout=2,
+            )
+        else:
+            _client = redis.Redis(
+                host=REDIS_HOST,
+                port=REDIS_PORT,
+                decode_responses=True,
+                socket_timeout=2,
+                socket_connect_timeout=2,
+            )
     return _client
 
 

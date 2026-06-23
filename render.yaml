@@ -1,0 +1,43 @@
+# Render Blueprint — one free Docker web service that runs the Flask API and,
+# via RUN_EMBEDDED_WORKER, the Redis-Stream event consumer in the same process.
+# Postgres comes from Neon and Redis from Upstash (set as secrets below), so this
+# single service is the only thing that needs hosting.
+#
+# Deploy: push to GitHub, then in Render → "New +" → "Blueprint", pick this repo.
+# Render reads this file and creates the service; fill in the sync:false secrets.
+services:
+  - type: web
+    name: banking-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SERVICE_ROLE
+        value: api
+      # Single instance, so it's safe to run migrations on boot.
+      - key: RUN_MIGRATIONS
+        value: "true"
+      # API process also runs the event consumer (no separate worker to pay for).
+      - key: RUN_EMBEDDED_WORKER
+        value: "true"
+      - key: GUNICORN_WORKERS
+        value: "1"
+      - key: GUNICORN_THREADS
+        value: "4"
+      - key: APP_ENV
+        value: production
+      # Skip the .env file lookup in definitions.py; read straight from the env.
+      - key: RUNNING_IN_DOCKER
+        value: DO-NOT-CHANGE
+      # ---- Secrets: set these in the Render dashboard (not committed) ----
+      - key: DATABASE_URL   # Neon pooled connection string (?sslmode=require)
+        sync: false
+      - key: REDIS_URL      # Upstash rediss:// URL
+        sync: false
+      - key: JWT_SECRET     # long random string
+        sync: false
+      - key: CORS_ORIGINS   # your Vercel URL, e.g. https://your-app.vercel.app
+        sync: false

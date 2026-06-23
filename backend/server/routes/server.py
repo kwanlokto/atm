@@ -15,13 +15,10 @@ from flask_migrate import Migrate
 
 from definitions import (
     APP_ENV,
+    CORS_ORIGINS,
     INSTANCE_ID,
     JWT_SECRET,
-    POSTGRES_DB,
-    POSTGRES_PASSWORD,
-    POSTGRES_PORT,
-    POSTGRES_SERVER,
-    POSTGRES_USER,
+    get_database_uri,
 )
 from server.exceptions.base import InternalException
 from server.exceptions.db import DBException
@@ -30,13 +27,17 @@ from server.models import db
 from server.models.user import User
 
 webserver = Flask(__name__)
-CORS(webserver)
 
-DATABASE_URI = (
-    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+# "*" allows any origin (dev default); otherwise a comma-separated allowlist so
+# the deployed API only answers the Vercel frontend.
+_cors_origins = (
+    "*"
+    if CORS_ORIGINS.strip() == "*"
+    else [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
 )
+CORS(webserver, origins=_cors_origins)
 
-webserver.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URI
+webserver.config["SQLALCHEMY_DATABASE_URI"] = get_database_uri()
 webserver.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_size": 5,
     "max_overflow": 5,

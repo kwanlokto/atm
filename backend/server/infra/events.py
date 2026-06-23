@@ -1,75 +1,40 @@
 """
-Asynchronous fan-out of post-transaction events to RabbitMQ.
+Asynchronous fan-out of post-transaction events through a Redis Stream.
 
 The HTTP handler is the source of truth (DB commit posts the money). After
 commit succeeds, we publish a small event so downstream consumers
 (notifications, statements, fraud scoring) can react without blocking the
 client response.
 
-Publishing failures are logged but never block the API response — the
-ledger row is already durable in Postgres.
+A Redis Stream + consumer group gives us durable messages, acks, and
+load-balanced delivery across multiple workers — the same guarantees the old
+RabbitMQ pipeline provided, but on the Redis we already run (so it fits a free
+managed tier). Publishing failures are logged but never block the API response;
+the ledger row is already durable in Postgres.
 """
 
 import json
-import threading
 
-import pika
+from definitions import TRANSACTION_EVENTS_STREAM
+from server.infra.session_store import redis_client
 
-from definitions import (
-    RABBITMQ_HOST,
-    RABBITMQ_PASSWORD,
-    RABBITMQ_PORT,
-    RABBITMQ_USER,
-    TRANSACTION_EVENTS_QUEUE,
-)
-
-_lock = threading.Lock()
-_connection = None
-_channel = None
-
-
-def _connect():
-    global _connection, _channel
-    params = pika.ConnectionParameters(
-        host=RABBITMQ_HOST,
-        port=RABBITMQ_PORT,
-        credentials=pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD),
-        heartbeat=30,
-        blocked_connection_timeout=10,
-    )
-    _connection = pika.BlockingConnection(params)
-    _channel = _connection.channel()
-    _channel.queue_declare(queue=TRANSACTION_EVENTS_QUEUE, durable=True)
+# Cap the stream so a busy day can't grow Redis without bound (matters on small
+# managed tiers). Approximate trimming is cheaper and plenty accurate here.
+_MAXLEN = 1000
 
 
 def publish_transaction_event(event):
     """
     Best-effort fan-out. Drops the message rather than failing the request if
-    RabbitMQ is unreachable.
+    Redis is unreachable.
     """
-    body = json.dumps(event, default=str).encode("utf-8")
-    with _lock:
-        for attempt in range(2):
-            try:
-                if _channel is None or _channel.is_closed:
-                    _connect()
-                _channel.basic_publish(
-                    exchange="",
-                    routing_key=TRANSACTION_EVENTS_QUEUE,
-                    body=body,
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,  # persistent
-                        content_type="application/json",
-                    ),
-                )
-                return
-            except (pika.exceptions.AMQPError, OSError) as e:
-                print(f"[events] publish failed (attempt {attempt}): {e}", flush=True)
-                try:
-                    if _connection and not _connection.is_closed:
-                        _connection.close()
-                except Exception:
-                    pass
-                globals()["_connection"] = None
-                globals()["_channel"] = None
-        print(f"[events] dropped event: {event}", flush=True)
+    body = json.dumps(event, default=str)
+    try:
+        redis_client().xadd(
+            TRANSACTION_EVENTS_STREAM,
+            {"data": body},
+            maxlen=_MAXLEN,
+            approximate=True,
+        )
+    except Exception as e:  # noqa: BLE001 — never let fan-out break a committed txn
+        print(f"[events] dropped event ({e}): {event}", flush=True)

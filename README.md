@@ -3,7 +3,7 @@
 A small retail-banking app built to demonstrate a real distributed setup:
 multiple stateless API replicas behind a load balancer, a connection-pooled
 Postgres, Redis-backed sessions and locks, and an async event pipeline
-through RabbitMQ.
+through a Redis Stream.
 
 ## Features
 
@@ -17,8 +17,9 @@ through RabbitMQ.
   return the original result.
 - **Stateless API** — JWT sessions live in Redis, so any replica can serve any
   request and `/user/logout` revokes instantly across the fleet.
-- **Async fan-out** — successful transactions publish to RabbitMQ; worker
-  replicas consume them (notifications, statements, fraud, etc.).
+- **Async fan-out** — successful transactions publish to a Redis Stream; worker
+  replicas consume them via a consumer group (notifications, statements, fraud,
+  etc.).
 - **Auditable ledger** — each transaction stores `kind`, signed `amount`, and
   `balance_after`; transfers are two paired rows joined by a shared `transfer_id`.
 
@@ -39,17 +40,22 @@ through RabbitMQ.
                        │                     │                     │
             ┌──────────┴──────────┬──────────┴──────────┐          │
             ▼                     ▼                     ▼          ▼
-       ┌─────────┐           ┌─────────┐          ┌──────────┐
-       │ Redis   │           │RabbitMQ │          │PgBouncer │
-       │sessions │           │ events  │          │  pool    │
-       │ + locks │           └────┬────┘          └────┬─────┘
-       └─────────┘                │                    │
-                                  ▼                    ▼
-                            ┌──────────┐         ┌──────────┐
-                            │ workers  │         │Postgres15│
-                            │ (×2)     │         │ ledger   │
-                            └──────────┘         └──────────┘
+       ┌─────────┐           ┌──────────────┐     ┌──────────┐
+       │ Redis   │           │ Redis Stream │     │PgBouncer │
+       │sessions │           │   events     │     │  pool    │
+       │ + locks │           └──────┬───────┘     └────┬─────┘
+       └─────────┘                  │                  │
+                                    ▼                  ▼
+                            ┌──────────────┐     ┌──────────┐
+                            │   workers    │     │Postgres15│
+                            │ (consumer    │     │ ledger   │
+                            │  group)      │     └──────────┘
+                            └──────────────┘
 ```
+
+> Events ride a Redis Stream consumer group rather than a separate broker, so
+> the same Redis backs sessions, locks, and the queue. This is what lets the
+> whole app run on free managed tiers — see **[Deploy for free](#deploy-for-free)**.
 
 ## Prerequisites
 
@@ -69,11 +75,10 @@ This brings up:
 | `frontend`  | 3000        | React UI                                           |
 | `nginx`     | 5000        | API edge — load-balances `backend` replicas        |
 | `backend`   | (internal)  | Flask API (scale with `--scale backend=N`)         |
-| `worker`    | (internal)  | RabbitMQ consumer (scale with `--scale worker=N`)  |
+| `worker`    | (internal)  | Redis-Stream consumer (scale with `--scale worker=N`) |
 | `pgbouncer` | 6432        | Postgres connection pool (transaction mode)        |
 | `postgres`  | 5434        | Primary DB (backend connects via `pgbouncer`)      |
-| `redis`     | 6379        | Sessions + per-account distributed locks           |
-| `rabbitmq`  | 5672 / 15672| AMQP + management UI (`guest` / `guest`)           |
+| `redis`     | 6379        | Sessions, per-account locks, **and** the event stream |
 
 The `migrate` service runs `alembic upgrade head` once on startup and then
 exits. The `backend` and `worker` services wait for it before booting.
@@ -114,7 +119,7 @@ docker compose logs -f worker
 ```
 
 Each successful deposit / withdrawal / transfer prints a line, load-balanced
-across the 2 worker replicas by RabbitMQ.
+across the worker replicas by the Redis Stream consumer group.
 
 ## Concurrency model in detail
 
@@ -134,7 +139,7 @@ Every money-movement endpoint follows the same pattern:
    rows, plus a unique `transfer_id` for transfers.
 7. `COMMIT`. The Postgres `CHECK (balance >= 0)` constraint is the final
    defense — even if every other layer is buggy, the DB refuses to overdraw.
-8. Release Redis locks; publish event to RabbitMQ (best-effort).
+8. Release Redis locks; publish event to the Redis Stream (best-effort).
 
 If two clients race on the same account, one acquires the Redis lock first
 and proceeds; the other blocks (up to 2s) and then runs against the freshly
@@ -183,6 +188,46 @@ docker compose up -d --scale backend=5 --scale worker=4
 ```
 
 The API is fully stateless, so scaling is just "start more containers."
-Sessions live in Redis, locks live in Redis, the queue lives in RabbitMQ,
-and PgBouncer multiplexes the Postgres connections so adding replicas
-doesn't blow up the DB connection budget.
+Sessions live in Redis, locks live in Redis, the event queue is a Redis
+Stream consumer group, and PgBouncer multiplexes the Postgres connections so
+adding replicas doesn't blow up the DB connection budget.
+
+## Deploy for free
+
+The stack also runs on free managed tiers, with the worker folded into the API
+process so only **one** service needs hosting:
+
+| Piece                  | Free host         | What to set                                  |
+| ---------------------- | ----------------- | -------------------------------------------- |
+| Postgres               | **Neon**          | copy the pooled connection string            |
+| Redis (sessions/locks/queue) | **Upstash**  | copy the `rediss://` URL                      |
+| API + embedded worker  | **Render**        | Docker web service (see [`render.yaml`](render.yaml)) |
+| Frontend (static)      | **Vercel**        | build `frontend/`, set `VITE_API_BASE_URL`   |
+
+Steps:
+
+1. **Neon** — create a project, copy the **pooled** connection string
+   (`...-pooler...?sslmode=require`).
+2. **Upstash** — create a Redis database, copy the `rediss://` URL.
+3. **Render** — New → Blueprint → pick this repo. It reads `render.yaml` and
+   creates the API service; fill in the `sync:false` secrets: `DATABASE_URL`
+   (Neon), `REDIS_URL` (Upstash), `JWT_SECRET` (a long random string), and
+   `CORS_ORIGINS` (your Vercel URL, added after step 4). The single instance runs
+   `alembic upgrade head` on boot and consumes events in a background thread.
+4. **Vercel** — New Project → import this repo, set **Root Directory** to
+   `frontend`. Add env var `VITE_API_BASE_URL=https://<your-render-app>.onrender.com`
+   and deploy. `frontend/vercel.json` handles SPA routing.
+5. Back in Render, set `CORS_ORIGINS` to the Vercel URL and redeploy.
+
+Notes:
+
+- The Render **free** web service sleeps after ~15 min idle — the first request
+  after a nap cold-starts (a few seconds), then it's responsive.
+- The embedded consumer uses a long blocking read and a length-capped stream to
+  stay well under Upstash's free command budget.
+- Never commit real Neon/Upstash credentials — set them only in the host
+  dashboards (`.env` is gitignored).
+
+The locks are still real, sessions still live in Redis, and money-movement is
+still concurrency-safe; the only thing that changes for free hosting is that the
+worker rides inside the API process instead of running as its own service.
